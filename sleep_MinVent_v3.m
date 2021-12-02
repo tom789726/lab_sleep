@@ -1,6 +1,6 @@
 clc; clear; close all;
 
-%% Parameters
+%% Parameters (for better display)
 time_op = 10400;
 time_ed = 11400;
 Edur_min = 10; % sec
@@ -44,8 +44,8 @@ nPress_neg = nPress.*(nPress<=(bound*-1));
 
 
 %% Method 1: sliding window (60s)
-windowSz = 60*fsamp;
-stepSz = fsamp;
+% windowSz = 60*fsamp;
+% stepSz = fsamp;
 
 % nPress_slide = zeros(size(nPress));
 % nPress_slide(1:windowSz) = sum(abs(nPress(1:windowSz)))/(2*windowSz);
@@ -93,6 +93,7 @@ y = ylim;
 plot([Estart Estart],[y(1) y(2)],'r-.');
 plot([Estart+Edur Estart+Edur],[y(1) y(2)],'b-.');
 
+legend('nPress','zero-crossing');
 ax = gca; 
 ax.XAxis.Exponent = 0;
 title('Tidal Volume (Amount/Cycle)');
@@ -105,13 +106,18 @@ ylim([-0.5 1])
 
 
 %% 1.2 Tidal Volume * Respiratory Rate , simple sliding window (60sec)
+windowSz = 60*fsamp;
+stepSz = fsamp;
+
 Vt_window = zeros(size(nPress_pos));
 idx_window = (1:windowSz);
 
-RR_start = find(idx_zCross>=idx_window(1),1);
+% RR stands for respiratory rate
+RR_start = find(idx_zCross>=idx_window(1),1); 
 RR_end = find(idx_zCross>idx_window(end),1)-1;
 RR = RR_end-RR_start;
 disp("No. of respiratory cycles in this window = " + RR);
+
 
 Vt_window(idx_window) = sum(Vt(idx_window))/60 * RR; % 前60秒(第一分鐘)用同一個數值
 
@@ -167,6 +173,6 @@ ylim([-0.5 1])
 % plot([Estart Estart],[y(1) y(2)],'r-.');
 % plot([Estart+Edur Estart+Edur],[y(1) y(2)],'b-.');
 % 
-% % obserce specific region
+% % observe specific region
 % xlim([time_op time_ed])
 % ylim([-0.5 1])
