@@ -30,7 +30,7 @@ flow = sqrt(nPress);
 bound_f = 0.04;
 flow_pos = flow.*(flow>=bound_f);
 
-%% Crop data
+%% Crop data (nPress)
 bound = 0.0025;
 nPress_pos = nPress.*(nPress>=bound);
 nPress_neg = nPress.*(nPress<=(bound*-1));
@@ -92,7 +92,7 @@ idx_vt = [idx_zCross(1:end-1),idx_zCross(2:end)];
 % Vt_temp = double.empty();
 for i = 1:size(idx_vt,1)
    Vt_dur = time(idx_vt(i,2)) - time(idx_vt(i,1));
-   Vt(idx_vt(i,1):idx_vt(i,2)) = sum(sig(idx_vt(i,1):idx_vt(i,2))) / (Vt_dur*fsamp);
+   Vt(idx_vt(i,1):idx_vt(i,2)) = sum(sig(idx_vt(i,1):idx_vt(i,2))) / (Vt_dur/fsamp);
 end
 
 figure
@@ -100,14 +100,14 @@ ax1 = plot(time,sig); xlabel('time(sec)');
 hold on
 ax2 = plot(time(1+idx_zCross-1),sig(idx_zCross),'mx');
 hold on
-ax3 = plot(time,Vt/max(Vt(:))+0.2,'k-');
+ax3 = plot(time,Vt/max(Vt(:)),'k-');
 
 ax = gca; 
 ax.XAxis.Exponent = 0;
 title('Tidal Volume (Amount/Cycle)');
 
 
-% xlim([time_op time_ed])
+xlim([time_op time_ed])
 % xlim([9160 9460])
 % xlim([1 120])
 ylim([-0.5 1])
@@ -117,12 +117,62 @@ y = ylim;
 plot([Estart Estart],[y(1) y(2)],'r-.');
 plot([Estart+Edur Estart+Edur],[y(1) y(2)],'b-.');
 legend([ax1,ax2,ax3],{'NPress(cropped)','zero crossings','Tidal Volume'});
-% legend([ax1,ax2,ax3],{'Flow(cropped)','zero crossings','Tidal Volume'});
+
 
 %% 1.1.1 Tidal Volume with interpolation
 % Edur_min: 判斷零點之間是否event
 
+%% 1.1.2 Tidal Volume (Add negative signals)
+% Find zero crossing pts (+ count no. of cycles)
+sig_n = nPress_neg.*(-1);
+% sig = flow_pos;
+idx_zeros = find(sign(sig_n)==0);
 
+sig_binary = sign(sig_n);
+sig_pattern = sig_binary(1:end-1)*2+sig_binary(2:end);
+idx_zCross = cat(1,[find(sig_pattern==1);find(sig_pattern==2)+1]); 
+idx_zCross = sort(idx_zCross);
+% See comm. sys.
+% 00 = 0, 01 = 1
+% 10 = 2, 11 = 3
+disp("Total no. of cycles = " + (size(idx_zCross,1)-1));
+
+% Find Tidal Volume
+
+% **Do not clear memory of Vt to success the data from postive signals**
+% Vt = zeros(size(nPress_neg));
+
+idx_vt_n = [idx_zCross(1:end-1),idx_zCross(2:end)];
+% Vt_temp = double.empty();
+for i = 1:size(idx_vt_n,1)
+   Vt_dur = time(idx_vt_n(i,2)) - time(idx_vt_n(i,1));
+   Vt(idx_vt_n(i,1):idx_vt_n(i,2)) = Vt(idx_vt_n(i,1):idx_vt_n(i,2)) + sum(sig_n(idx_vt_n(i,1):idx_vt_n(i,2))) / (Vt_dur/fsamp);
+end
+
+figure
+ax1 = plot(time,nPress); xlabel('time(sec)');
+% hold on
+% ax2 = plot(time(1+idx_zCross-1),nPress(idx_zCross),'mx');
+hold on
+ax3 = plot(time,Vt/max(Vt(:))+0.2,'k-');
+% ax3 = plot(time,Vt/max(Vt(:)),'k-');
+
+ax = gca; 
+ax.XAxis.Exponent = 0;
+title('Tidal Volume (Amount/Cycle)');
+
+
+xlim([time_op time_ed])
+% xlim([9160 9460])
+% xlim([1 120])
+ylim([-0.5 1])
+
+hold on 
+y = ylim;
+plot([Estart Estart],[y(1) y(2)],'r-.');
+plot([Estart+Edur Estart+Edur],[y(1) y(2)],'b-.');
+% legend([ax1,ax2,ax3],{'NPress(cropped)','zero crossings','Tidal Volume'});
+legend([ax1,ax3],{'NPress(raw)','Tidal Volume'});
 
 %% 1.2 Tidal Volume * Respiratory Rate , simple sliding window (60sec)
 sig = nPress_pos;
